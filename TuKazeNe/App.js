@@ -21,12 +21,30 @@ export default function App() {
         <Stack.Screen 
           name="PostJob" 
           component={JobPostScreen}
-          options={{ title: 'Post a Job' }}
+          options={{ 
+            title: 'Post a Job',
+            headerStyle: {
+              backgroundColor: '#16a34a',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
         />
         <Stack.Screen 
           name="WorkerProfile" 
           component={WorkerProfileScreen}
-          options={{ title: 'Create Profile' }}
+          options={{ 
+            title: 'Create Profile',
+            headerStyle: {
+              backgroundColor: '#16a34a',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

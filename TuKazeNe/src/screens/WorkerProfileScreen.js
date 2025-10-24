@@ -15,7 +15,7 @@ export default function WorkerProfileScreen({ navigation }) {
     }
 
     Alert.alert(
-      'Profile Saved!',
+      'Profile Saved! 🎉',
       'Your profile is now visible to employers on TuKazeNe!',
       [
         {
