@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97956836449",
+    "project_id": "tukazene-uganda",
+    "storage_bucket": "tukazene-uganda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97956836449:android:16b9409c4187ed9e17a620",
+        "android_client_info": {
+          "package_name": "com.tukazene.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdqhc61UfIfArsIrCCZxWbqiuAfE-UdSs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
