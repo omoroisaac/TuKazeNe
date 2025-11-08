@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { db } from '../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function WorkerProfileScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -7,28 +9,65 @@ export default function WorkerProfileScreen({ navigation }) {
   const [certifications, setCertifications] = useState('');
   const [rate, setRate] = useState('');
   const [location, setLocation] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim() || !skills.trim() || !rate.trim() || !location.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
-    Alert.alert(
-      'Profile Saved! 🎉',
-      'Your profile is now visible to employers on TuKazeNe!',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Welcome')
-        }
-      ]
-    );
+    setSaving(true);
+    try {
+      // Save to Firebase Firestore
+      const workerData = {
+        name: name.trim(),
+        skills: skills.trim(),
+        certifications: certifications.trim(),
+        rate: rate.trim() + ' UGX',
+        location: location.trim(),
+        isAvailable: true,
+        rating: 0,
+        reviewCount: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const docRef = await addDoc(collection(db, 'workers'), workerData);
+      
+      console.log('Worker saved with ID: ', docRef.id);
+      
+      Alert.alert(
+        'Profile Saved! 🎉',
+        'Your profile is now live on TuKazeNe!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Clear form
+              setName('');
+              setSkills('');
+              setCertifications('');
+              setRate('');
+              setLocation('');
+              navigation.navigate('Welcome');
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error saving worker:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.form}>
+        <Text style={styles.note}>💡 This will save to REAL Firebase database</Text>
+        
         {/* Name */}
         <Text style={styles.label}>Full Name *</Text>
         <TextInput
@@ -76,9 +115,19 @@ export default function WorkerProfileScreen({ navigation }) {
         />
 
         {/* Save Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSave}>
-          <Text style={styles.submitButtonText}>SAVE PROFILE</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, saving && styles.submitButtonDisabled]} 
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.submitButtonText}>
+            {saving ? 'Saving to Firebase...' : 'SAVE PROFILE TO FIREBASE'}
+          </Text>
         </TouchableOpacity>
+
+        <Text style={styles.firebaseNote}>
+          🔥 Data will be saved to your Firebase project
+        </Text>
       </View>
     </ScrollView>
   );
@@ -91,6 +140,15 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 16,
+  },
+  note: {
+    backgroundColor: '#e8f5e8',
+    padding: 12,
+    borderRadius: 8,
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#16a34a',
+    fontWeight: '600',
   },
   label: {
     fontSize: 16,
@@ -113,9 +171,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  firebaseNote: {
+    textAlign: 'center',
+    color: '#6b7280',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
 });

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import { db } from '../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const categories = [
   'General Labor',
@@ -31,6 +33,7 @@ export default function JobPostScreen({ navigation }) {
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('Getting your location...');
+  const [posting, setPosting] = useState(false);
 
   // Request location permission
   useEffect(() => {
@@ -58,9 +61,6 @@ export default function JobPostScreen({ navigation }) {
   }, []);
 
   const sendNotificationToWorkers = async (jobData) => {
-    // In real app, this would send to backend which pushes to nearby workers
-    // For now, we'll show a local notification as proof of concept
-    
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "New Job Nearby! 🎯",
@@ -77,37 +77,61 @@ export default function JobPostScreen({ navigation }) {
       return;
     }
 
-    const jobData = {
-      title: jobTitle,
-      category,
-      description,
-      wage: `${wage} UGX`,
-      negotiable: isNegotiable,
-      location: userLocation ? {
-        latitude: userLocation.coords.latitude,
-        longitude: userLocation.coords.longitude
-      } : null,
-      timestamp: new Date().toISOString()
-    };
+    setPosting(true);
+    try {
+      const jobData = {
+        title: jobTitle.trim(),
+        category,
+        description: description.trim(),
+        wage: parseInt(wage) || 0,
+        wageDisplay: `${parseInt(wage).toLocaleString()} UGX`,
+        negotiable: isNegotiable,
+        location: userLocation ? {
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude
+        } : null,
+        status: 'open',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
 
-    // Send notification
-    await sendNotificationToWorkers(jobData);
+      // Save to Firebase
+      const docRef = await addDoc(collection(db, 'jobs'), jobData);
+      console.log('Job saved with ID: ', docRef.id);
 
-    Alert.alert(
-      'Job Posted! 🎉',
-      `"${jobTitle}" is now live! Nearby workers have been notified.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Welcome')
-        }
-      ]
-    );
+      // Send notification
+      await sendNotificationToWorkers(jobData);
+
+      Alert.alert(
+        'Job Posted to Firebase! 🎉',
+        `"${jobTitle}" is now live! Nearby workers have been notified.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Clear form
+              setJobTitle('');
+              setDescription('');
+              setWage('');
+              setIsNegotiable(false);
+              navigation.navigate('Welcome');
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error saving job:', error);
+      Alert.alert('Error', 'Failed to post job. Please try again.');
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.form}>
+        <Text style={styles.note}>💡 This will save to REAL Firebase database</Text>
+
         {/* Job Title */}
         <Text style={styles.label}>Job Title *</Text>
         <TextInput
@@ -181,9 +205,19 @@ export default function JobPostScreen({ navigation }) {
         </View>
 
         {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>POST JOB & NOTIFY WORKERS</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, posting && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={posting}
+        >
+          <Text style={styles.submitButtonText}>
+            {posting ? 'Saving to Firebase...' : 'POST JOB TO FIREBASE'}
+          </Text>
         </TouchableOpacity>
+
+        <Text style={styles.firebaseNote}>
+          🔥 Data will be saved to your Firebase project
+        </Text>
       </View>
     </ScrollView>
   );
@@ -196,6 +230,15 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 16,
+  },
+  note: {
+    backgroundColor: '#e8f5e8',
+    padding: 12,
+    borderRadius: 8,
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#16a34a',
+    fontWeight: '600',
   },
   label: {
     fontSize: 16,
@@ -283,9 +326,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  firebaseNote: {
+    textAlign: 'center',
+    color: '#6b7280',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
 });
